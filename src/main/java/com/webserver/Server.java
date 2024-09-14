@@ -69,7 +69,6 @@ public class Server {
 
       Runnable work = () -> {
         try {
-
           System.out.println(
               "Thread " + Thread.currentThread().getId()
               + ": Accepted incoming connection from <"
@@ -82,9 +81,8 @@ public class Server {
         } catch (IOException ex) {
           System.out.println(
               "Thread " + Thread.currentThread().getId()
-              + " caught an exception:"
+              + " caught an exception:\n" + ex
           );
-          System.out.println(ex);
         }
       };
 
