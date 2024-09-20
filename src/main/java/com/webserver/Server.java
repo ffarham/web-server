@@ -9,7 +9,6 @@ import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -31,10 +30,11 @@ public class Server {
    * - port 80 is the default network port for webservers using HTTP
    * - binding to address 0.0.0.0 allows the server to listen on all network interfaces
    *   including the loopback/local-only interface (i.e. 127.0.0.1)
+   * - virtual threads are used instead of standard thread to accommodate high-throughput
    *
    * @param port the port the server listens on.
-   * @param maxWorkerThreads the maximum number of worker threads to spawn in the thread pool in
-   *                         order to handle incoming connections.
+   * @param maxWorkerThreads the maximum number of worker virtual threads to spawn in the
+   *                         thread pool in order to handle incoming connections.
    * @throws IOException if an I/O error occurs when opening the socket.
    */
   public Server(
@@ -48,7 +48,10 @@ public class Server {
       InetAddress.getByAddress(new byte[] {0, 0, 0, 0})
     );
 
-    this.threadpool = Executors.newFixedThreadPool(maxWorkerThreads);
+    this.threadpool = Executors.newFixedThreadPool(
+        maxWorkerThreads,
+        Thread.ofVirtual().factory()
+    );
   }
 
   /**

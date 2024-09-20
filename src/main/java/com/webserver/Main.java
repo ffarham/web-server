@@ -15,7 +15,7 @@ public class Main {
    */
   public static void main(String[] args) throws IOException {
 
-    Server server = new Server(80, 100);
+    Server server = new Server(80, 10000);
     server.start();
 
   }
