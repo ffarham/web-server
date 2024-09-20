@@ -102,7 +102,6 @@ public class Server {
       final OutputStream outputStream
   ) throws IOException {
 
-    // TODO: initialise buffWriter asynchronously
     final BufferedWriter buffWriter = new BufferedWriter(new OutputStreamWriter(outputStream));
 
     readMessage(inputStream)
