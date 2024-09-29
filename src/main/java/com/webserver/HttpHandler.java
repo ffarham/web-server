@@ -71,6 +71,7 @@ public class HttpHandler {
   public static Optional<HttpResponse> buildResponseObject(HttpRequest request) {
 
     final String requestedUri = request.uri();
+
     final Optional<IntStringPair> optCodeAndWebpage = RouteManager.getPage(requestedUri);
     if (optCodeAndWebpage.isEmpty()) {
       return Optional.empty();
@@ -78,17 +79,25 @@ public class HttpHandler {
     final IntStringPair codeAndWebpage = optCodeAndWebpage.get();
     final int statusCode = codeAndWebpage.left();
     final String webpage = codeAndWebpage.right();
-    List<String> headers = List.of(
+
+    final List<String> headers = List.of(
         "Content-Type: text/html\r\n",
+        "charset: utf-8\r\n",
         "Server: Farham's Toy WebServer\r\n"
     );
+    final String encodedWebPage = new String(
+        webpage.getBytes(StandardCharsets.UTF_8),
+        StandardCharsets.UTF_8
+    );
     return Optional.of(
-        new HttpResponse(statusCode, getStatusCodeMeaning(statusCode), headers, webpage)
+        new HttpResponse(statusCode, getStatusCodeMeaning(statusCode), headers, encodedWebPage)
     );
   }
 
   /**
    * Method to write back to the client when request has been processed successfully.
+   * Notes: encoding the web page to ensure that characters that are ont part of the 
+   * stnadard ASCII set are transmitted properly
    *
    * @param response object representing what to write back.
    * @param buffWriter used to write back to the connected client.
@@ -98,43 +107,31 @@ public class HttpHandler {
       BufferedWriter buffWriter
   ) {
 
-    try {
+    StringBuilder message = new StringBuilder();
+    final String statusLine = "HTTP/1.1 " + response.statusCode() + " "
+        + response.statusCodeMeaning();
+    message.append(statusLine).append("\r\n");
+    response.headers().forEach(message::append);
+    message.append("\r\n").append(response.body()).append("\r\n");
 
-      buffWriter.write(
-          "HTTP/1.1 " + response.statusCode() + " " + response.statusCodeMeaning() + "\r\n"
-      );
-
-      for (String header : response.headers()) {
-        buffWriter.write(header);
-      }
-
-      final String encodedString = new String(
-          response.body().getBytes(StandardCharsets.UTF_8),
-          StandardCharsets.UTF_8
-      );
-      buffWriter.write("\r\n");
-      buffWriter.write(encodedString);
-
-    } catch (IOException ex) {
-      System.out.println(
-          "Thread " + Thread.currentThread().getId()
-          + " caught the following exception when writing back to the client: "
-          + ex
-      );
-    }
+    writerHandler(buffWriter, message.toString());
   }
 
+
   /**
-   * Method to the client was not processed successfully.
+   * Method to write back to the client when the server failed to process the client request.
    *
    * @param buffWriter used to write back to the connected client.
    */
-  public static void onFailWriteBack(
-      BufferedWriter buffWriter
-  ) {
+  public static void onFailWriteBack(BufferedWriter buffWriter) {
 
+    writerHandler(buffWriter, "HTTP/1.1 500 Internal server error.\r\n");
+    
+  }
+
+  private static void writerHandler(BufferedWriter buffWriter, String message) {
     try {
-      buffWriter.write("HTTP/1.1 500 Internal server error.\r\n");
+      buffWriter.write(message);
     } catch (IOException ex) {
       System.out.println(
           "Thread " + Thread.currentThread().getId()
